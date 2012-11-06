@@ -1,7 +1,7 @@
-from dbmigrate.core import (
+from deebeemigrate.core import (
     DBMigrate, OutOfOrderException, ModifiedMigrationException
 )
-from dbmigrate.dbengines import loads_string_keys
+from deebeemigrate.dbengines import loads_string_keys
 import subprocess
 import os
 

@@ -8,9 +8,9 @@ from optparse import OptionParser
 from datetime import datetime
 from glob import glob
 
-from dbmigrate import dbengines
-from dbmigrate.dbengines import FilenameSha1
-from dbmigrate.command import command
+from deebeemigrate import dbengines
+from deebeemigrate.dbengines import FilenameSha1
+from deebeemigrate.command import command
 
 
 logger = logging.getLogger(__name__)
