@@ -128,8 +128,6 @@ class postgresql(GenericEngine):
         self.ProgrammingError = self.engine.ProgrammingError
         self.OperationalError = self.engine.OperationalError
 
-        if schema:
-            self.execute('SET search_path = %s' % schema)
 
     def execute(self, statement):
         try:
