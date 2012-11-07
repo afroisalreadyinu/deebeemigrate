@@ -106,19 +106,28 @@ class mysql(GenericEngine):
         super(mysql, self).__init__(connection_string)
 
 
-class postgres(GenericEngine):
+class postgresql(GenericEngine):
     """a migration engine for postgres"""
 
     migration_table_sql = (
         "CREATE TABLE dbmigration "
         "(filename varchar(255), sha1 varchar(40), date timestamp);")
 
+
     def __init__(self, connection_string):
         import psycopg2
         self.engine = psycopg2
-        connection_dict = json.loads(connection_string)
-        schema = connection_dict.pop('schema', None)
-        super(postgres, self).__init__(json.dumps(connection_dict))
+
+        from urlparse import urlsplit
+        connection_info = urlsplit('postgresql://%s' % connection_string)
+        self.connection = self.engine.connect(host=connection_info.hostname,
+                                              port=connection_info.port,
+                                              user=connection_info.username,
+                                              password=connection_info.password,
+                                              database=connection_info.path[1:])
+        self.ProgrammingError = self.engine.ProgrammingError
+        self.OperationalError = self.engine.OperationalError
+
         if schema:
             self.execute('SET search_path = %s' % schema)
 
