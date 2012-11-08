@@ -75,20 +75,23 @@ class DBMigrate(object):
     @command
     def migrate(self, *args):
         """migrate a database to the current schema"""
+        response = []
         if not self.dry_run:
             try:
                 self.engine.create_migration_table()
             except dbengines.SQLException:
                 # migration table has already been created
                 pass
+            else:
+                response.append('Created migrations table')
         try:
             performed_migrations = self.engine.performed_migrations()
-        except dbengines.SQLException as e:
+        except dbengines.SQLException:
             if self.dry_run:
                 # corner case - dry run on a database without a migration table
                 performed_migrations = []
             else:
-                raise e
+                raise
 
         current_migrations = self.current_migrations()
         files_current = [x.filename for x in current_migrations]
@@ -121,19 +124,24 @@ class DBMigrate(object):
                 'run on this database.' % ','.join(deleted_migrations))
         command_sql = self.engine.sql(self.directory, files_sha1s_to_run)
         if self.dry_run:
-            response = []
             for command, sql in command_sql:
                 if command:
                     response.append('command: ' + command)
                 if sql:
                     response.append('sql: ' + sql)
-            return '\n'.join(response)
         else:
             for command, sql in command_sql:
                 if command:
                     subprocess.check_call(command)
                 if sql:
                     self.engine.execute(sql)
+            if files_sha1s_to_run:
+                response.append('Ran %d migrations:' % len(files_sha1s_to_run))
+                response.append('\n'.join(filename for filename,_ in files_sha1s_to_run))
+            else:
+                response.append('No unapplied migrations')
+        return '\n'.join(response)
+
 
     @command
     def create(self, slug, ext="sql", open=open):

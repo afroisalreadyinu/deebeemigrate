@@ -7,6 +7,11 @@ import os
 
 import unittest
 
+# TODO:
+# - Fix tests
+# - Add test for filling migrations with migrations if migrations
+# table is created (because you are creating the db from schema and
+# don't need migrations anyway)
 
 class FakeFile(object):
     def __call__(self, filename, options):
@@ -256,9 +261,10 @@ class TestDBMigrate(unittest.TestCase):
         dbmigrate = DBMigrate(**self.settings)
         try:
             dbmigrate.migrate()
-            self.fail('Expected the script to fail')
         except subprocess.CalledProcessError as e:
             self.assert_('20121019152409-script.sh' in str(e))
+        else:
+            self.fail('Expected the script to fail')
 
     def test_ignore_filenames_sha1_migration(self):
         self.settings['directory'] = os.path.join(

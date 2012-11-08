@@ -11,9 +11,8 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-loads_string_keys = lambda s: dict(
-    (str(k), v) for k, v in json.loads(s).items()
-)
+def loads_string_keys(s):
+    return dict((str(k), v) for k, v in json.loads(s).items())
 
 
 class SQLException(Exception):
