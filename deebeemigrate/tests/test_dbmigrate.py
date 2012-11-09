@@ -8,7 +8,6 @@ import os
 import unittest
 
 # TODO:
-# - Fix tests
 # - Add test for filling migrations with migrations if migrations
 # table is created (because you are creating the db from schema and
 # don't need migrations anyway)
@@ -58,6 +57,7 @@ class TestDBMigrate(unittest.TestCase):
             'out_of_order': False,
             'dry_run': False,
             'connection_string': connection_string,
+            'run_for_new_db': True
         }
         if db_data['engine'] == 'mysql':
             import MySQLdb
@@ -93,6 +93,7 @@ class TestDBMigrate(unittest.TestCase):
         self.assert_(fake_file.filename.startswith('/tmp'))
         self.assert_(fake_file.filename.endswith('test-slug.sql'))
         self.assertEqual(fake_file.contents, '-- add your migration here')
+
 
     def test_current_migrations(self):
         fixtures_path = os.path.join(
@@ -160,10 +161,22 @@ class TestDBMigrate(unittest.TestCase):
         dbmigrate.migrate()
         # since the database is in memory we need to reach in to get it
         self.assertEqual(
-            dbmigrate.engine.performed_migrations(), [(
+            dbmigrate.engine.performed_migrations, [(
                 '20120115075349-create-user-table.sql',
                 '0187aa5e13e268fc621c894a7ac4345579cf50b7'
             )])
+
+
+    def test_initial_migration_without_run_all(self):
+        fixtures_path = os.path.join(
+            os.path.dirname(__file__), 'fixtures', 'initial')
+        self.settings['directory'] = fixtures_path
+        self.settings['run_for_new_db'] = False
+        dbmigrate = DBMigrate(**self.settings)
+        dbmigrate.migrate()
+        # since the database is in memory we need to reach in to get it
+        self.assertEqual(dbmigrate.engine.performed_migrations, [])
+
 
     def test_out_of_order_migration(self):
         fixtures_path = os.path.join(
@@ -193,7 +206,7 @@ class TestDBMigrate(unittest.TestCase):
             os.path.dirname(__file__), 'fixtures', 'out-of-order-2')
         dbmigrate.migrate()
         self.assertEqual(
-            dbmigrate.engine.performed_migrations(),
+            dbmigrate.engine.performed_migrations,
             [('20120114221757-before-initial.sql',
               'c7fc17564f24f7b960e9ef3f6f9130203cc87dc9'),
              ('20120115221757-initial.sql',
@@ -242,7 +255,7 @@ class TestDBMigrate(unittest.TestCase):
             os.path.dirname(__file__), 'fixtures', 'second-run')
         dbmigrate.migrate()
         self.assertEqual(
-            dbmigrate.engine.performed_migrations(),
+            dbmigrate.engine.performed_migrations,
             [('20120115075349-create-user-table.sql',
               '0187aa5e13e268fc621c894a7ac4345579cf50b7'),
              ('20120603133552-awesome.sql',
@@ -272,7 +285,7 @@ class TestDBMigrate(unittest.TestCase):
         dbmigrate = DBMigrate(**self.settings)
         dbmigrate.migrate()
         self.assertEqual(
-            dbmigrate.engine.performed_migrations(),
+            dbmigrate.engine.performed_migrations,
             [('20121019152404-initial.sql',
               '4205e6d2f0c0f141098ccf8b56e04ed2e9da3f92'),
              ('20121019152409-script.sh',
@@ -301,7 +314,7 @@ class TestDBMigrate(unittest.TestCase):
         dbmigrate.renamed()
         dbmigrate.migrate()
         self.assertEqual(
-            dbmigrate.engine.performed_migrations(),
+            dbmigrate.engine.performed_migrations,
             [('20120115075300-add-another-test-table-renamed-reordered.sql',
               '4aebd2514665effff5105ad568a4fbe62f567087'),
              ('20120115075349-create-user-table.sql',

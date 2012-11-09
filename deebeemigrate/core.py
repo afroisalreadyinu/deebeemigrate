@@ -31,11 +31,14 @@ class DBMigrate(object):
                  out_of_order,
                  dry_run,
                  connection_string,
-                 directory):
+                 directory,
+                 run_for_new_db):
         self.out_of_order = out_of_order
         self.dry_run = dry_run
         self.engine = DatabaseMigrationEngine.connect(connection_string)
         self.directory = directory
+        self.run_for_new_db = run_for_new_db
+
 
     def blobsha1(self, filename):
         """returns the git sha1sum of a file so the exact migration
@@ -59,7 +62,7 @@ class DBMigrate(object):
     def renamed(self, *args):
         """rename files in the migration table if the order changed"""
         performed_migrations = dict(
-            (v, k) for k, v in self.engine.performed_migrations())
+            (v, k) for k, v in self.engine.performed_migrations)
         current_migrations = dict(
             (v, k) for k, v in self.current_migrations())
         renames = []
@@ -80,19 +83,19 @@ class DBMigrate(object):
     def migrate(self, *args):
         """migrate a database to the current schema"""
         response = []
+        new_db = False
         if not self.dry_run:
             try:
                 self.engine.create_migration_table()
             except SQLException:
-                # migration table has already been created
                 pass
             else:
                 response.append('Created migrations table')
+                new_db = True
         try:
-            performed_migrations = self.engine.performed_migrations()
+            performed_migrations = self.engine.performed_migrations
         except SQLException:
             if self.dry_run:
-                # corner case - dry run on a database without a migration table
                 performed_migrations = []
             else:
                 raise
@@ -185,35 +188,32 @@ def main():
         help="print SQL that would be run but take no real action",
         default=False)
     parser.add_option(
-        "-e", "--engine", dest="engine", action="store",
-        help="database engine",
-        default="sqlite",
-        type="string")
-    parser.add_option(
         "-c", "--connection-string", dest="connection_string", action="store",
         help="string used by the database engine to connect to the database",
-        default=":memory:",
+        default="sqlite:///:memory:",
         type="string")
     parser.add_option(
         "-d", "--directory", dest="directory", action="store",
         help="directory where the migrations are stored",
         type="string",
         default=".")
+    parser.add_option(
+        "-r", "--run-for-new-db", dest="run_for_new_db", action="store_false",
+        help="whether the existing migrations should be run if the migration table has been created")
 
     (options, args) = parser.parse_args()
 
     if not len(args):
         parser.print_help()
-    else:
-        options = vars(options)
-        options['engine'] = os.environ.get(
-            'DBMIGRATE_ENGINE', options['engine'])
-        options['connection_string'] = os.environ.get(
-            'DBMIGRATE_CONNECTION', options['connection_string'])
-        dbmigrate = DBMigrate(**options)
-        result = command.commands[args[0]](dbmigrate, *args[1:])
-        if result:
-            print(result)
+        return
+
+    options = vars(options)
+    options['connection_string'] = os.environ.get(
+        'DBMIGRATE_CONNECTION', options['connection_string'])
+    dbmigrate = DBMigrate(**options)
+    result = command.commands[args[0]](dbmigrate, *args[1:])
+    if result:
+        print(result)
 
 
 if __name__ == '__main__':

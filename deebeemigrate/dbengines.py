@@ -54,6 +54,7 @@ class DatabaseMigrationEngine(object):
                 (filename, sha1, self.date_func))
             yield command, "\n".join(sql_statements)
 
+    @property
     def performed_migrations(self):
         return [FilenameSha1(r[0], r[1]) for r in self.results(
             "SELECT filename, sha1 FROM dbmigration ORDER BY filename")]
