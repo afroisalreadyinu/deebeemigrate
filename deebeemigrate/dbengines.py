@@ -27,6 +27,7 @@ class SQLException(Exception):
 
 FilenameSha1 = collections.namedtuple('FilenameSha1', 'filename sha1')
 
+INSERT_STMT = "INSERT INTO dbmigration (filename, sha1, date) VALUES ('%s', '%s', %s());"
 
 class DatabaseMigrationEngine(object):
     migration_table_sql = (
@@ -34,25 +35,24 @@ class DatabaseMigrationEngine(object):
         "(filename varchar(255), sha1 varchar(40), date datetime);")
     ENGINES = {}
 
+
     def create_migration_table(self):
         self.execute(self.migration_table_sql)
 
-    def sql(self, directory, files_sha1s_to_run):
-        for filename, sha1 in sorted(files_sha1s_to_run):
-            command = None
-            sql_statements = []
-            sql_statements.append(
-                '-- start filename: %s sha1: %s' % (filename, sha1))
-            if os.path.splitext(filename)[-1] == '.sql':
-                sql_statements += open(
-                    os.path.join(directory, filename)).read().splitlines()
-            else:
-                command = os.path.join(directory, filename)
-            sql_statements.append(
-                "INSERT INTO dbmigration (filename, sha1, date) "
-                "VALUES ('%s', '%s', %s());" %
-                (filename, sha1, self.date_func))
-            yield command, "\n".join(sql_statements)
+
+    def sql(self, directory, filename, sha1_hash):
+        command = None
+        sql_statement = ['-- start filename: %s sha1: %s' % (filename, sha1_hash)]
+
+        if os.path.splitext(filename)[-1] == '.sql':
+            with open(os.path.join(directory, filename), 'r') as migration:
+                sql_statement += migration.read().splitlines()
+        else:
+            command = os.path.join(directory, filename)
+
+        sql_statement.append(INSERT_STMT % (filename, sha1_hash, self.date_func))
+        return command, "\n".join(sql_statement)
+
 
     @property
     def performed_migrations(self):

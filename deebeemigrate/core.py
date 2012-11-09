@@ -129,15 +129,18 @@ class DBMigrate(object):
             raise ModifiedMigrationException(
                 '[%s] migrations were deleted since they were '
                 'run on this database.' % ','.join(deleted_migrations))
-        command_sql = self.engine.sql(self.directory, files_sha1s_to_run)
+
+        commands = [self.engine.sql(self.directory, filename, sha1_hash)
+                    for filename, sha1_hash in sorted(files_sha1s_to_run)]
+
         if self.dry_run:
-            for command, sql in command_sql:
+            for command, sql in commands:
                 if command:
                     response.append('command: ' + command)
                 if sql:
                     response.append('sql: ' + sql)
         else:
-            for command, sql in command_sql:
+            for command, sql in commands:
                 if command:
                     subprocess.check_call(command)
                 if sql:
