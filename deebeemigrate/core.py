@@ -8,8 +8,9 @@ from optparse import OptionParser
 from datetime import datetime
 from glob import glob
 
-from deebeemigrate import dbengines
-from deebeemigrate.dbengines import FilenameSha1
+from deebeemigrate.dbengines import (DatabaseMigrationEngine,
+                                     FilenameSha1,
+                                     SQLException)
 from deebeemigrate.command import command
 
 
@@ -26,11 +27,14 @@ class ModifiedMigrationException(Exception):
 
 class DBMigrate(object):
     """A set of commands to safely migrate databases automatically"""
-    def __init__(self, out_of_order, dry_run, engine, connection_string,
+    def __init__(self,
+                 out_of_order,
+                 dry_run,
+                 connection_string,
                  directory):
         self.out_of_order = out_of_order
         self.dry_run = dry_run
-        self.engine = getattr(dbengines, engine)(connection_string)
+        self.engine = DatabaseMigrationEngine.connect(connection_string)
         self.directory = directory
 
     def blobsha1(self, filename):
@@ -79,14 +83,14 @@ class DBMigrate(object):
         if not self.dry_run:
             try:
                 self.engine.create_migration_table()
-            except dbengines.SQLException:
+            except SQLException:
                 # migration table has already been created
                 pass
             else:
                 response.append('Created migrations table')
         try:
             performed_migrations = self.engine.performed_migrations()
-        except dbengines.SQLException:
+        except SQLException:
             if self.dry_run:
                 # corner case - dry run on a database without a migration table
                 performed_migrations = []

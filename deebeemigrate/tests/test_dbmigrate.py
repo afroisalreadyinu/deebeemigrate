@@ -1,7 +1,7 @@
 from deebeemigrate.core import (
     DBMigrate, OutOfOrderException, ModifiedMigrationException
 )
-from deebeemigrate.dbengines import loads_string_keys
+from deebeemigrate.dbengines import parse_db_url
 import subprocess
 import os
 
@@ -14,6 +14,7 @@ import unittest
 # don't need migrations anyway)
 
 class FakeFile(object):
+
     def __call__(self, filename, options):
         self.filename = filename
         self.options = options
@@ -23,25 +24,49 @@ class FakeFile(object):
         self.contents = contents
 
 
+class TestConnectionUrlParser(unittest.TestCase):
+
+    def test_postgres_url_parts(self):
+        url = 'postgresql://usernm:passwd@hosthost:12345/dbname'
+        parts = parse_db_url(url)
+        self.assertEqual(parts,
+                         dict(engine='postgresql',
+                              host='hosthost',
+                              port=12345,
+                              user='usernm',
+                              password='passwd',
+                              database='dbname'))
+
+
+    def test_sqlite_memory(self):
+        url = 'sqlite:///:memory:'
+        parts = parse_db_url(url)
+        self.assertEqual(parts,
+                         dict(engine='sqlite',
+                              host=None,
+                              port=None,
+                              user=None,
+                              password=None,
+                              database=':memory:'))
+
 class TestDBMigrate(unittest.TestCase):
+
     def setUp(self):
-        engine = os.environ.get('DBMIGRATE_ENGINE', 'sqlite')
-        connection_string = os.environ.get('DBMIGRATE_CONNECTION', ':memory:')
-        connection_settings = loads_string_keys(connection_string)
+        connection_string = 'sqlite:///:memory:'
+        db_data = parse_db_url(connection_string)
         self.settings = {
             'out_of_order': False,
             'dry_run': False,
-            'engine': engine,
             'connection_string': connection_string,
         }
-        if engine == 'mysql':
+        if db_data['engine'] == 'mysql':
             import MySQLdb
             # create the test database
             db = connection_settings.pop('db')
             c = MySQLdb.connect(**connection_settings)
             c.cursor().execute('DROP DATABASE IF EXISTS %s' % db)
             c.cursor().execute('CREATE DATABASE %s' % db)
-        if engine == 'postgres':
+        if db_data['engine'] == 'postgres':
             import psycopg2
             # create the test database
             database = connection_settings['database']

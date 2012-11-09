@@ -6,13 +6,19 @@ try:
     import json
 except ImportError:
     import simplejson as json
-
+from urlparse import urlsplit
 
 logger = logging.getLogger(__name__)
 
 
-def loads_string_keys(s):
-    return dict((str(k), v) for k, v in json.loads(s).items())
+def parse_db_url(url):
+    connection_info = urlsplit(url)
+    return dict(engine = connection_info.scheme,
+                host=connection_info.hostname,
+                port=connection_info.port,
+                user=connection_info.username,
+                password=connection_info.password,
+                database=connection_info.path[1:])
 
 
 class SQLException(Exception):
@@ -26,6 +32,7 @@ class DatabaseMigrationEngine(object):
     migration_table_sql = (
         "CREATE TABLE dbmigration "
         "(filename varchar(255), sha1 varchar(40), date datetime);")
+    ENGINES = {}
 
     def create_migration_table(self):
         self.execute(self.migration_table_sql)
@@ -51,13 +58,23 @@ class DatabaseMigrationEngine(object):
         return [FilenameSha1(r[0], r[1]) for r in self.results(
             "SELECT filename, sha1 FROM dbmigration ORDER BY filename")]
 
+    @classmethod
+    def register(cls):
+        DatabaseMigrationEngine.ENGINES[cls.SCHEME] = cls
+
+    @classmethod
+    def connect(cls, db_url):
+        db_data = parse_db_url(db_url)
+        return cls.ENGINES[db_data['engine']](db_data)
+
 
 class sqlite(DatabaseMigrationEngine):
     """a migration engine for sqlite"""
     date_func = 'datetime'
+    SCHEME = 'sqlite'
 
-    def __init__(self, connection_string):
-        self.connection = sqlite3.connect(connection_string)
+    def __init__(self, db_data):
+        self.connection = sqlite3.connect(db_data['database'])
 
     def execute(self, statement):
         try:
@@ -76,10 +93,8 @@ class GenericEngine(DatabaseMigrationEngine):
     """a generic database engine"""
     date_func = 'now'
 
-    def __init__(self, connection_string):
-        self.connection = self.engine.connect(
-            **loads_string_keys(connection_string)
-        )
+    def __init__(self, db_data):
+        self.connection = self.engine.connect(db_data)
         self.ProgrammingError = self.engine.ProgrammingError
         self.OperationalError = self.engine.OperationalError
 
@@ -95,9 +110,10 @@ class GenericEngine(DatabaseMigrationEngine):
     def results(self, statement):
         return list(self.execute(statement).fetchall())
 
-
 class mysql(GenericEngine):
     """a migration engine for mysql"""
+
+    SCHEME = 'mysql'
 
     def __init__(self, connection_string):
         import MySQLdb
@@ -112,20 +128,12 @@ class postgresql(GenericEngine):
         "CREATE TABLE dbmigration "
         "(filename varchar(255), sha1 varchar(40), date timestamp);")
 
+    SCHEME = 'postgresql'
 
     def __init__(self, connection_string):
         import psycopg2
         self.engine = psycopg2
-
-        from urlparse import urlsplit
-        connection_info = urlsplit('postgresql://%s' % connection_string)
-        self.connection = self.engine.connect(host=connection_info.hostname,
-                                              port=connection_info.port,
-                                              user=connection_info.username,
-                                              password=connection_info.password,
-                                              database=connection_info.path[1:])
-        self.ProgrammingError = self.engine.ProgrammingError
-        self.OperationalError = self.engine.OperationalError
+        super(mysql, self).__init__(connection_string)
 
 
     def execute(self, statement):
@@ -137,3 +145,6 @@ class postgresql(GenericEngine):
         except (self.ProgrammingError, self.OperationalError) as e:
             self.connection.rollback()
             raise SQLException(str(e))
+
+for engine in [postgresql,mysql,sqlite]:
+    engine.register()
