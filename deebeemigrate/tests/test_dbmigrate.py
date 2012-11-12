@@ -163,8 +163,14 @@ migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120603
         dbmigrate = DBMigrate(**self.settings)
         migrated = dbmigrate.migrate()
 
-        self.assertEqual(migrated, 'Simulated 1 migrations:\n20120115075349-create-user-table.sql')
-        #self.assertEqual(dbmigrate.engine.performed_migrations,
+        self.assertEqual(migrated, 'Created migrations table\nSimulated 1 migrations:\n20120115075349-create-user-table.sql')
+
+        self.assertEqual(
+            dbmigrate.engine.performed_migrations, [(
+                '20120115075349-create-user-table.sql',
+                '0187aa5e13e268fc621c894a7ac4345579cf50b7'
+            )])
+
 
 
     def test_out_of_order_migration(self):

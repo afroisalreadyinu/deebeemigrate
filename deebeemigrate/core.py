@@ -82,7 +82,6 @@ class DBMigrate(object):
     @command
     def migrate(self, *args):
         """migrate a database to the current schema"""
-        response = []
         new_db = False
         if not self.dry_run:
             try:
@@ -90,7 +89,6 @@ class DBMigrate(object):
             except SQLException:
                 pass
             else:
-                response.append('Created migrations table')
                 new_db = True
         try:
             performed_migrations = self.engine.performed_migrations
@@ -136,7 +134,6 @@ class DBMigrate(object):
         if self.dry_run:
             return '\n'.join(str(x) for x in migrations)
 
-
         for migration_info in migrations:
             if not (new_db and not self.run_for_new_db):
 
@@ -148,16 +145,17 @@ class DBMigrate(object):
                 migration_info.applied = True
             else:
                 migration_info.ghost = True
-            if migration_info.migration_info_sql:
-                self.engine.execute(migration_info.migration_info_sql)
+            self.engine.execute(migration_info.migration_info_sql)
 
-        return self.generate_response(migrations)
+        return self.generate_response(migrations, new_db)
 
 
-    def generate_response(self, migrations):
+    def generate_response(self, migrations, new_db):
+        response = ['Created migrations table'] if new_db else []
+
         if not migrations:
-            return 'No unapplied migrations'
-        response = []
+            response.append('No unapplied migrations')
+            return '\n'.join(response)
         applied = [migration for migration in migrations if migration.applied]
         ghosts = [migration for migration in migrations if migration.ghost]
         if applied:
