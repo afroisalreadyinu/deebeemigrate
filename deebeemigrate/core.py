@@ -130,11 +130,11 @@ class DBMigrate(object):
                 '[%s] migrations were deleted since they were '
                 'run on this database.' % ','.join(deleted_migrations))
 
-        commands = dict([(filename, self.engine.sql(self.directory, filename, sha1_hash))
-                         for filename, sha1_hash in sorted(files_sha1s_to_run)])
+        migrations = [self.engine.sql(self.directory, filename, sha1_hash)
+                      for filename, sha1_hash in sorted(files_sha1s_to_run)]
 
         if self.dry_run:
-            for filename,  migration_info in commands.iteritems():
+            for migration_info in migrations:
                 if migration_info.command:
                     response.append('command: ' + migration_info.command)
                 if migration_info.migration_sql:
@@ -144,7 +144,7 @@ class DBMigrate(object):
             return '\n'.join(response)
 
 
-        for filename,  migration_info in commands.iteritems():
+        for migration_info in migrations:
             if not (new_db and not self.run_for_new_db):
 
                 if migration_info.command:
@@ -158,7 +158,7 @@ class DBMigrate(object):
             if migration_info.migration_info_sql:
                 self.engine.execute(migration_info.migration_info_sql)
 
-        return self.generate_response(commands.values())
+        return self.generate_response(migrations)
 
 
     def generate_response(self, migrations):
