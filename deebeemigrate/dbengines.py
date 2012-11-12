@@ -26,6 +26,8 @@ class SQLException(Exception):
 
 
 FilenameSha1 = collections.namedtuple('FilenameSha1', 'filename sha1')
+MigrationCommandInfo = collections.namedtuple('MigrationCommandInfo',
+                                              'command migration_sql migration_info_sql')
 
 INSERT_STMT = "INSERT INTO dbmigration (filename, sha1, date) VALUES ('%s', '%s', %s());"
 
@@ -42,16 +44,17 @@ class DatabaseMigrationEngine(object):
 
     def sql(self, directory, filename, sha1_hash):
         command = None
-        sql_statement = ['-- start filename: %s sha1: %s' % (filename, sha1_hash)]
+        sql_statement = ''
 
         if os.path.splitext(filename)[-1] == '.sql':
             with open(os.path.join(directory, filename), 'r') as migration:
-                sql_statement += migration.read().splitlines()
+                sql_statement = migration.read()
         else:
             command = os.path.join(directory, filename)
 
-        sql_statement.append(INSERT_STMT % (filename, sha1_hash, self.date_func))
-        return command, "\n".join(sql_statement)
+        return MigrationCommandInfo(command=command,
+                                    migration_sql=sql_statement,
+                                    migration_info_sql=INSERT_STMT % (filename, sha1_hash, self.date_func))
 
 
     @property
