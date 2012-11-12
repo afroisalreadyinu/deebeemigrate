@@ -35,6 +35,11 @@ class MigrationCommandInfo(object):
         self.applied, self.ghost = False, False
         self.filename = filename
 
+    def __str__(self):
+        if self.command:
+            return 'command: %s\nmigration info: %s' % (self.command, self.migration_info_sql)
+        return 'sql: %s\nmigration info: %s' % (self.migration_sql, self.migration_info_sql)
+
 INSERT_STMT = "INSERT INTO dbmigration (filename, sha1, date) VALUES ('%s', '%s', %s());"
 
 class DatabaseMigrationEngine(object):

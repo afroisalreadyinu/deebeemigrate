@@ -112,6 +112,7 @@ class TestDBMigrate(unittest.TestCase):
         self.settings['directory'] = fixtures_path
         self.settings['dry_run'] = True
         dbmigrate = DBMigrate(**self.settings)
+
         self.assertEqual(dbmigrate.migrate(), (
 """sql: -- intentionally making this imperfect so it can be migrated
 CREATE TABLE users (
@@ -120,6 +121,7 @@ CREATE TABLE users (
   password_sha1 varchar(40)
 );
 migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120115075349-create-user-table.sql', '0187aa5e13e268fc621c894a7ac4345579cf50b7', %s());""" % dbmigrate.engine.date_func))
+
 
     def test_multiple_migration_dry_run(self):
         fixtures_path = os.path.join(

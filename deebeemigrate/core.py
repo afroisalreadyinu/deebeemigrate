@@ -134,14 +134,7 @@ class DBMigrate(object):
                       for filename, sha1_hash in sorted(files_sha1s_to_run)]
 
         if self.dry_run:
-            for migration_info in migrations:
-                if migration_info.command:
-                    response.append('command: ' + migration_info.command)
-                if migration_info.migration_sql:
-                    response.append('sql: ' + migration_info.migration_sql)
-                if migration_info.migration_info_sql:
-                    response.append('migration info: ' + migration_info.migration_info_sql)
-            return '\n'.join(response)
+            return '\n'.join(str(x) for x in migrations)
 
 
         for migration_info in migrations:
