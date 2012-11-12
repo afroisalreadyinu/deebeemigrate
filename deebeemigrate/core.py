@@ -139,18 +139,40 @@ class DBMigrate(object):
                     response.append('command: ' + migration_info.command)
                 if migration_info.migration_sql:
                     response.append('sql: ' + migration_info.migration_sql)
-        else:
-            for filename,  migration_info in commands.iteritems():
+                if migration_info.migration_info_sql:
+                    response.append('migration info: ' + migration_info.migration_info_sql)
+            return '\n'.join(response)
+
+
+        for filename,  migration_info in commands.iteritems():
+            if not (new_db and not self.run_for_new_db):
+
                 if migration_info.command:
                     subprocess.check_call(migration_info.command)
+
                 if migration_info.migration_sql:
                     self.engine.execute(migration_info.migration_sql)
-
-            if files_sha1s_to_run:
-                response.append('Ran %d migrations:' % len(files_sha1s_to_run))
-                response.append('\n'.join(filename for filename,_ in files_sha1s_to_run))
+                migration_info.applied = True
             else:
-                response.append('No unapplied migrations')
+                migration_info.ghost = True
+            if migration_info.migration_info_sql:
+                self.engine.execute(migration_info.migration_info_sql)
+
+        return self.generate_response(commands.values())
+
+
+    def generate_response(self, migrations):
+        if not migrations:
+            return 'No unapplied migrations'
+        response = []
+        applied = [migration for migration in migrations if migration.applied]
+        ghosts = [migration for migration in migrations if migration.ghost]
+        if applied:
+            response.append('Ran %d migrations:' % len(applied))
+            response.append('\n'.join(x.filename for x in applied))
+        if ghosts:
+            response.append('Simulated %d migrations:' % len(ghosts))
+            response.append('\n'.join(x.filename for x in ghosts))
         return '\n'.join(response)
 
 

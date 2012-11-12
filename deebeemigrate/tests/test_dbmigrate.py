@@ -113,18 +113,13 @@ class TestDBMigrate(unittest.TestCase):
         self.settings['dry_run'] = True
         dbmigrate = DBMigrate(**self.settings)
         self.assertEqual(dbmigrate.migrate(), (
-            "sql: -- start filename: 20120115075349-create-user-table.sql "
-            "sha1: 0187aa5e13e268fc621c894a7ac4345579cf50b7\n"
-            "-- intentionally making this imperfect so it can be migrated\n"
-            "CREATE TABLE users (\n"
-            "  id int PRIMARY KEY,\n"
-            "  name varchar(255),\n"
-            "  password_sha1 varchar(40)\n"
-            ");\n"
-            "INSERT INTO dbmigration (filename, sha1, date) VALUES ("
-            "'20120115075349-create-user-table.sql', "
-            "'0187aa5e13e268fc621c894a7ac4345579cf50b7', %s());" %
-            dbmigrate.engine.date_func))
+"""sql: -- intentionally making this imperfect so it can be migrated
+CREATE TABLE users (
+  id int PRIMARY KEY,
+  name varchar(255),
+  password_sha1 varchar(40)
+);
+migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120115075349-create-user-table.sql', '0187aa5e13e268fc621c894a7ac4345579cf50b7', %s());""" % dbmigrate.engine.date_func))
 
     def test_multiple_migration_dry_run(self):
         fixtures_path = os.path.join(
@@ -173,9 +168,10 @@ class TestDBMigrate(unittest.TestCase):
         self.settings['directory'] = fixtures_path
         self.settings['run_for_new_db'] = False
         dbmigrate = DBMigrate(**self.settings)
-        dbmigrate.migrate()
-        # since the database is in memory we need to reach in to get it
-        self.assertEqual(dbmigrate.engine.performed_migrations, [])
+        migrated = dbmigrate.migrate()
+
+        self.assertEqual(migrated, 'Simulated 1 migrations:\n20120115075349-create-user-table.sql')
+        #self.assertEqual(dbmigrate.engine.performed_migrations,
 
 
     def test_out_of_order_migration(self):

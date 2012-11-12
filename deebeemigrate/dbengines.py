@@ -26,8 +26,14 @@ class SQLException(Exception):
 
 
 FilenameSha1 = collections.namedtuple('FilenameSha1', 'filename sha1')
-MigrationCommandInfo = collections.namedtuple('MigrationCommandInfo',
-                                              'command migration_sql migration_info_sql')
+
+class MigrationCommandInfo(object):
+    def __init__(self, command, migration_sql, migration_info_sql, filename):
+        self.command = command
+        self.migration_sql = migration_sql
+        self.migration_info_sql = migration_info_sql
+        self.applied, self.ghost = False, False
+        self.filename = filename
 
 INSERT_STMT = "INSERT INTO dbmigration (filename, sha1, date) VALUES ('%s', '%s', %s());"
 
@@ -54,8 +60,8 @@ class DatabaseMigrationEngine(object):
 
         return MigrationCommandInfo(command=command,
                                     migration_sql=sql_statement,
-                                    migration_info_sql=INSERT_STMT % (filename, sha1_hash, self.date_func))
-
+                                    migration_info_sql=INSERT_STMT % (filename, sha1_hash, self.date_func),
+                                    filename=filename)
 
     @property
     def performed_migrations(self):
