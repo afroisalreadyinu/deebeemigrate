@@ -127,26 +127,17 @@ migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120115
         self.settings['directory'] = fixtures_path
         self.settings['dry_run'] = True
         dbmigrate = DBMigrate(**self.settings)
+
         self.assertEqual(dbmigrate.migrate(), (
-            "sql: -- start filename: 20120115075349-create-user-table.sql "
-            "sha1: 0187aa5e13e268fc621c894a7ac4345579cf50b7\n"
-            "-- intentionally making this imperfect so it can be migrated\n"
-            "CREATE TABLE users (\n"
-            "  id int PRIMARY KEY,\n"
-            "  name varchar(255),\n"
-            "  password_sha1 varchar(40)\n"
-            ");\n"
-            "INSERT INTO dbmigration (filename, sha1, date) VALUES ("
-            "'20120115075349-create-user-table.sql', "
-            "'0187aa5e13e268fc621c894a7ac4345579cf50b7', "
-            "%(date_func)s());\n"
-            "sql: -- start filename: 20120603133552-awesome.sql sha1: "
-            "6759512e1e29b60a82b4a5587c5ea18e06b7d381\n"
-            "ALTER TABLE users ADD COLUMN email varchar(70);\n"
-            "INSERT INTO dbmigration (filename, sha1, date) VALUES ("
-            "'20120603133552-awesome.sql', "
-            "'6759512e1e29b60a82b4a5587c5ea18e06b7d381', %(date_func)s());" %
-            {'date_func': dbmigrate.engine.date_func}))
+"""sql: -- intentionally making this imperfect so it can be migrated
+CREATE TABLE users (
+  id int PRIMARY KEY,
+  name varchar(255),
+  password_sha1 varchar(40)
+);
+migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120115075349-create-user-table.sql', '0187aa5e13e268fc621c894a7ac4345579cf50b7', %(date_func)s());
+sql: ALTER TABLE users ADD COLUMN email varchar(70);
+migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120603133552-awesome.sql', '6759512e1e29b60a82b4a5587c5ea18e06b7d381', %(date_func)s());""" % {'date_func': dbmigrate.engine.date_func}))
 
     def test_initial_migration(self):
         fixtures_path = os.path.join(
@@ -283,11 +274,11 @@ migration info: INSERT INTO dbmigration (filename, sha1, date) VALUES ('20120115
         self.assertEqual(
             dbmigrate.engine.performed_migrations,
             [('20121019152404-initial.sql',
-              '4205e6d2f0c0f141098ccf8b56e04ed2e9da3f92'),
+              '4485430c4b18fdbe273a845e654c66ada42d3066'),
              ('20121019152409-script.sh',
               '837a6ab019646fae8488048e20ff2651437b2fbd'),
              ('20121019152412-final.sql',
-              '4205e6d2f0c0f141098ccf8b56e04ed2e9da3f92')])
+              '4485430c4b18fdbe273a845e654c66ada42d3066')])
 
     def test_failing_script_migration(self):
         self.settings['directory'] = os.path.join(
