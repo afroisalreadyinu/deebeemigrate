@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import subprocess
 import logging
 from hashlib import sha1
@@ -171,9 +170,7 @@ class DBMigrate(object):
     def create(self, slug, ext="sql", open=open):
         """create a new migration file"""
 
-        create_content_map = json.loads(
-            os.environ.get("DBMIGRATE_CREATE_CONTENT", '""')
-        ) or {
+        create_content_map ={
             'sql': '-- add your migration here',
             'py': '#!/usr/bin/env python\n# add migration here',
         }
