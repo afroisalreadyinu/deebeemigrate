@@ -148,7 +148,7 @@ class postgresql(GenericEngine):
     def __init__(self, connection_string):
         import psycopg2
         self.engine = psycopg2
-        super(mysql, self).__init__(connection_string)
+        super(postgresql, self).__init__(connection_string)
 
 
     def execute(self, statement):
