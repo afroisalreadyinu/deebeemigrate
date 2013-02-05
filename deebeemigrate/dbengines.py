@@ -109,7 +109,8 @@ class GenericEngine(DatabaseMigrationEngine):
     date_func = 'now'
 
     def __init__(self, db_data):
-        self.connection = self.engine.connect(db_data)
+        db_data.pop('engine')
+        self.connection = self.engine.connect(**db_data)
         self.ProgrammingError = self.engine.ProgrammingError
         self.OperationalError = self.engine.OperationalError
 
@@ -125,15 +126,16 @@ class GenericEngine(DatabaseMigrationEngine):
     def results(self, statement):
         return list(self.execute(statement).fetchall())
 
+
 class mysql(GenericEngine):
     """a migration engine for mysql"""
 
     SCHEME = 'mysql'
 
-    def __init__(self, connection_string):
+    def __init__(self, db_data):
         import MySQLdb
         self.engine = MySQLdb
-        super(mysql, self).__init__(connection_string)
+        super(mysql, self).__init__(db_data)
 
 
 class postgresql(GenericEngine):
@@ -145,11 +147,10 @@ class postgresql(GenericEngine):
 
     SCHEME = 'postgresql'
 
-    def __init__(self, connection_string):
+    def __init__(self, db_data):
         import psycopg2
         self.engine = psycopg2
-        super(postgresql, self).__init__(connection_string)
-
+        super(postgresql, self).__init__(db_data)
 
     def execute(self, statement):
         try:
